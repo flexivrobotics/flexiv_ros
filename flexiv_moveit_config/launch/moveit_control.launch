@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Launch real-robot control -->
+  <include file="$(find flexiv_bringup)/launch/rizon_control.launch" pass_all_args="true" >
+    <arg name="use_rviz" value="false" />
+  </include>
+
+  <!-- Launch MoveIt -->
+  <include file="$(dirname)/moveit_planning_execution.launch" pass_all_args="true">
+    <!-- robot description is loaded by rizon_control.launch -->
+    <arg name="load_robot_description" value="false" />
+    <!-- MoveItSimpleControllerManager provides ros_control's JointTrajectory controllers -->
+    <arg name="moveit_controller_manager" value="simple" />
+    <arg name="use_rviz" value="true" />
+  </include>
+</launch>

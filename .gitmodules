@@ -1,0 +1,3 @@
+[submodule "flexiv_hardware/rdk"]
+	path = flexiv_hardware/rdk
+	url = https://github.com/flexivrobotics/flexiv_rdk.git

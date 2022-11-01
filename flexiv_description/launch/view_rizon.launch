@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="use_gui" default="true" doc="Flag to enable joint_state_publisher_gui" />
+    <arg name="rizon_type" default="rizon4" doc="Type of the Flexiv Rizon robot" />
+    <param name="robot_description" command="$(find xacro)/xacro '$(find flexiv_description)/urdf/rizon.urdf.xacro' rizon_type:=$(arg rizon_type)" />
+
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" output="screen" unless="$(arg use_gui)"/>
+    <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" output="screen" if="$(arg use_gui)"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find flexiv_description)/rviz/view_rizon.rviz" required="true" />
+</launch>

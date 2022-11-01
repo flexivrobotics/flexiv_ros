@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: flexiv_description
+    relative_path: urdf/rizon.urdf.xacro
+    xacro_args: ""
+  SRDF:
+    relative_path: config/rizon.srdf.xacro
+  CONFIG:
+    author_name: Mun Seng Phoon
+    author_email: munseng.phoon@flexiv.com
+    generated_timestamp: 1657174484
