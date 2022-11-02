@@ -1,0 +1,12 @@
+<launch>
+
+  <!-- This file makes it easy to include different planning pipelines;
+       It is assumed that all planning pipelines are named XXX_planning_pipeline.launch  -->
+
+  <arg name="pipeline" default="ompl" />
+  <arg name="name" default="rizon" />
+  <arg name="prefix" default="" />
+
+  <include ns="$(arg pipeline)" file="$(dirname)/$(arg pipeline)_planning_pipeline.launch.xml" />
+
+</launch>

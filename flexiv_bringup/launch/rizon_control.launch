@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot_ip" doc="IP address of the robot server (remote)."/>
+    <arg name="local_ip" doc="IP address of the workstation PC (local)."/>
+    <arg name="rizon_type" default="rizon4" doc="Type of the Flexiv Rizon robot" />
+    <arg name="controllers_file" default="$(find flexiv_bringup)/config/rizon_controllers.yaml" doc="YAML file with the controllers configuration."/>
+    <arg name="controllers" default="joint_state_controller position_joint_trajectory_controller" />
+    <arg name="use_rviz" default="true" />
+
+    <!-- Load URDF -->
+    <param name="robot_description" command="$(find xacro)/xacro '$(find flexiv_description)/urdf/rizon.urdf.xacro' rizon_type:=$(arg rizon_type)" />
+
+    <!-- Load hardware interface -->
+    <node name="flexiv_hardware_interface" pkg="flexiv_hardware" type="flexiv_hardware_interface_node" output="screen">
+        <param name="robot_ip" type="str" value="$(arg robot_ip)"/>
+        <param name="local_ip" type="str" value="$(arg local_ip)"/>
+    </node>
+
+    <!-- Load controller settings -->
+    <rosparam command="load" file="$(arg controllers_file)" subst_value="true" />
+
+    <!-- Spawn controller manager -->
+    <node name="ros_control_controller_manager" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="$(arg controllers)" />
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find flexiv_description)/rviz/view_rizon.rviz" respawn="false" if="$(arg use_rviz)"/>
+</launch>

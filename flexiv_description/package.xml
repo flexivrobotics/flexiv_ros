@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>flexiv_description</name>
+  <version>0.6.1</version>
+  <description>URDF description for flexiv arms</description>
+  <author email="munseng.phoon@flexiv.com">Mun Seng Phoon</author>
+  <maintainer email="munseng.phoon@flexiv.com">Mun Seng Phoon</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+</package>
