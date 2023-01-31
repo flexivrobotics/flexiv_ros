@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="$(arg name)">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rizon">
   <!-- Enable setting arguments from the launch file -->
-  <xacro:arg name="name" default="rizon"/>
-
   <!-- 'rizon_type' values: rizon4, rizon4s, rizon10 -->
   <xacro:arg name="rizon_type" default="rizon4"/>
 

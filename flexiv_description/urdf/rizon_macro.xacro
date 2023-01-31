@@ -6,6 +6,7 @@
     prefix">
 
     <xacro:include filename="$(find flexiv_description)/urdf/flexiv_arm_materials.xacro" />
+    <xacro:flexiv_arm_materials />
 
     <!-- Rizon 4 or 4s-->
     <xacro:if value="${rizon_type=='rizon4' or rizon_type=='rizon4s'}">
