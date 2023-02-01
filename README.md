@@ -15,6 +15,9 @@ RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like
 ## Building
 
 ```bash
+# install additional ROS packages
+$ sudo apt-get install ros-noetic-ros-control ros-noetic-ros-controllers
+
 # source ros noetic
 $ source /opt/ros/noetic/setup.bash
 
