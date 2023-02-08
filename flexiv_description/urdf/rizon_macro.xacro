@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="rizon_robot" params="
+    rizon_type
+    prefix">
+
+    <xacro:include filename="$(find flexiv_description)/urdf/flexiv_arm_materials.xacro" />
+    <xacro:flexiv_arm_materials />
+
+    <!-- Rizon 4 or 4s-->
+    <xacro:if value="${rizon_type=='rizon4' or rizon_type=='rizon4s'}">
+      <xacro:include filename="$(find flexiv_description)/urdf/rizon4_joints_links.xacro" />
+      <xacro:rizon4_joints_links rizon_type="$(arg rizon_type)" prefix="$(arg prefix)" mesh_prefix_path="package://flexiv_description/" />
+    </xacro:if>
+
+    <!-- Rizon 10 -->
+    <xacro:if value="${rizon_type=='rizon10'}">
+      <xacro:include filename="$(find flexiv_description)/urdf/rizon10_joints_links.xacro" />
+      <xacro:rizon10_joints_links rizon_type="$(arg rizon_type)" prefix="$(arg prefix)" mesh_prefix_path="package://flexiv_description/" />
+    </xacro:if>
+
+  </xacro:macro>
+  
+</robot>

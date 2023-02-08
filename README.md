@@ -15,6 +15,9 @@ RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like
 ## Building
 
 ```bash
+# install additional ROS packages
+$ sudo apt-get install ros-noetic-ros-control ros-noetic-ros-controllers
+
 # source ros noetic
 $ source /opt/ros/noetic/setup.bash
 
@@ -24,7 +27,12 @@ $ mkdir -p flexiv_ros_ws/src && cd flexiv_ros_ws
 # clone the packages
 $ git clone https://github.com/flexivrobotics/flexiv_ros.git src/flexiv_ros
 
+# update the rdk submodule
+$ cd src/flexiv_ros
+$ git submodule update --init --recursive
+
 # install dependencies
+$ cd flexiv_ros_ws
 $ sudo apt update -qq
 $ rosdep update
 $ rosdep install --from-paths src --ignore-src -y
@@ -52,7 +60,7 @@ To start the robot driver run the following command in a terminal:
 $ roslaunch flexiv_bringup rizon_control.launch robot_ip:=[robot_ip] local_ip:=[local_ip]
 ```
 
-*Note:* Rizon 4 is the default robot type in the above launch command. If you want to control the Rizon 4s, add the launch argument `rizon_type:=rizon4s`.
+*Note:* Rizon 4 is the default robot type in the above launch command. If you want to control the Rizon 4s or Rizon 10, add the launch argument e.g. `rizon_type:=rizon4s`.
 
 In another terminal, start the following launch file to run the rqt:
 

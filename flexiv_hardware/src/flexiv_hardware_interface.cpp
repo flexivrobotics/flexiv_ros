@@ -215,8 +215,8 @@ void FlexivHardwareInterface::read(
         joint_velocity_state_ = robot_states.dtheta;
         joint_effort_state_ = robot_states.tau;
 
-        ext_force_in_tcp_ = robot_states.extForceInTcpFrame;
-        ext_force_in_base_ = robot_states.extForceInBaseFrame;
+        ext_force_in_tcp_ = robot_states.extWrenchInTcp;
+        ext_force_in_base_ = robot_states.extWrenchInBase;
 
         internal_joint_position_command_ = joint_position_state_;
     }
