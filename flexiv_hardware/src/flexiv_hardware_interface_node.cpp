@@ -35,6 +35,7 @@ int main(int argc, char** argv)
         ROS_ERROR("Failed to initialize Flexiv Hardware Interface.");
         exit(1);
     }
+
     // Create the controller manager
     controller_manager::ControllerManager cm(
         flexiv_hardware_interface.get(), nh);
