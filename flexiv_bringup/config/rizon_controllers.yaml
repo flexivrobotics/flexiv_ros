@@ -22,7 +22,7 @@ position_joint_trajectory_controller:
   joints: *robot_joints
   constraints:
     goal_time: 0.5
-    stopped_velocity_tolerance: 0.05
+    stopped_velocity_tolerance: 0.01
     joint1: { goal: 0.05}
     joint2: { goal: 0.05}
     joint3: { goal: 0.05}
@@ -30,56 +30,6 @@ position_joint_trajectory_controller:
     joint5: { goal: 0.05}
     joint6: { goal: 0.05}
     joint7: { goal: 0.05}
-  stop_trajectory_duration: 0.5
-  state_publish_rate: 100.0
-  action_monitor_rate: 20.0
-
-velocity_joint_trajectory_controller:
-  type: velocity_controllers/JointTrajectoryController
-  joints: *robot_joints
-  constraints:
-    goal_time: 0.5
-    stopped_velocity_tolerance: 0.05
-    joint1: { goal: 0.05}
-    joint2: { goal: 0.05}
-    joint3: { goal: 0.05}
-    joint4: { goal: 0.05}
-    joint5: { goal: 0.05}
-    joint6: { goal: 0.05}
-    joint7: { goal: 0.05}
-  gains:
-    joint1: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint2: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint3: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint4: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint5: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint6: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-    joint7: {p: 5.0, i: 0.05, d: 0.1, i_clamp: 1}
-  stop_trajectory_duration: 0.5
-  state_publish_rate: 100.0
-  action_monitor_rate: 20.0
-
-effort_joint_trajectory_controller:
-  type: effort_controllers/JointTrajectoryController
-  joints: *robot_joints
-  constraints:
-    goal_time: 0.5
-    stopped_velocity_tolerance: 0.05
-    joint1: { goal: 0.05}
-    joint2: { goal: 0.05}
-    joint3: { goal: 0.05}
-    joint4: { goal: 0.05}
-    joint5: { goal: 0.05}
-    joint6: { goal: 0.05}
-    joint7: { goal: 0.05}
-  gains:
-    joint1: { p: 3000, d: 80, i: 0 }
-    joint2: { p: 3000, d: 80, i: 0 }
-    joint3: { p: 800, d: 40, i: 0 }
-    joint4: { p: 800, d: 40, i: 0 }
-    joint5: { p: 200, d: 8, i: 0 }
-    joint6: { p: 200, d: 8, i: 0 }
-    joint7: { p: 200, d: 8, i: 0 }
   stop_trajectory_duration: 0.5
   state_publish_rate: 100.0
   action_monitor_rate: 20.0

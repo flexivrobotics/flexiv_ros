@@ -38,7 +38,6 @@ class FlexivHardwareInterface : public hardware_interface::RobotHW
 public:
     /**
      * @brief Construct a new FlexivHardwareInterface object
-     *
      */
     FlexivHardwareInterface();
 
@@ -48,7 +47,6 @@ public:
      * @brief Handles the setup functionality for the ROS interface. This
      * includes parsing ROS parameters, connecting to the robot, and setting up
      * hardware interfaces for ros_control.
-     *
      * @param[in] root_nh Root level ROS node handle.
      * @param[in] robot_hw_nh ROS node handle for the robot namespace.
      * @return True if successful, false otherwise.
@@ -59,7 +57,6 @@ public:
     /**
      * @brief Reads the parameterization of the hardware class from the ROS
      * parameter server (e.g. local_ip, robot_ip, joint_names etc.)
-     *
      * @param[in] root_nh A node handle in the root namespace of the control
      * node.
      * @param[in] robot_hw_nh A node handle in the namespace of the robot
@@ -71,7 +68,6 @@ public:
 
     /**
      * @brief Initializes the class in terms of ros_control interfaces.
-     *
      * @note You have to call initParameters beforehand. Use the complete
      * initialization routine \ref init() method to control robots.
      * @param[in] robot_hw_nh A node handle in the namespace of the robot
@@ -81,7 +77,6 @@ public:
 
     /**
      * @brief Reads data from the robot.
-     *
      * @param[in] time Current time.
      * @param[in] period Duration of current control loop iteration.
      */
@@ -90,7 +85,6 @@ public:
 
     /**
      * @brief Writes data to the robot.
-     *
      * @param[in] time Current time.
      * @param[in] period Duration of current control loop iteration.
      */
@@ -99,13 +93,11 @@ public:
 
     /**
      * @brief Set all members to default values.
-     *
      */
     virtual void reset();
 
     /**
      * @brief Prepares switching between controllers.
-     *
      * @param[in] start_list List of requested controllers to start.
      * @param[in] stop_list List of requested controllers to stop.
      * @return True if the preparation has been successful, false otherwise.
@@ -117,7 +109,6 @@ public:
 
     /**
      * @brief Perform controllers switching.
-     *
      * @param[in] start_list List of requested controllers to start.
      * @param[in] stop_list List of requested controllers to stop.
      */
@@ -126,8 +117,8 @@ public:
         const std::list<hardware_interface::ControllerInfo>& stop_list)
         override;
 
-    /** @brief Enforce limits on position, velocity, and effort.
-     *
+    /**
+     * @brief Enforce limits on position, velocity, and effort.
      * @param[in] period The duration of the current cycle.
      */
     virtual void enforceLimits(const ros::Duration& period);
@@ -135,7 +126,6 @@ public:
 protected:
     /**
      * @brief Uses the robot_ip to connect to the robot via RDK.
-     *
      * @return True if successful, false otherwise.
      */
     virtual bool initRobot();
@@ -143,14 +133,27 @@ protected:
     /**
      * @brief Get current joint position and set the joint command with those
      * values.
-     *
      */
     virtual void setInitPosition();
 
     /**
+     * @brief Checks whether a vector of doubles contains NaN values.
+     * @param[in] vector The vector to check.
+     * @return True if the vector contains NaN values, false otherwise.
+     */
+    static bool vectorHasNan(const std::vector<double>& vector)
+    {
+        for (const double& value : vector) {
+            if (std::isnan(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @brief Configures a limit interface to enforce limits on effort, velocity
      * or position level on joint commands.
-     *
      * @param[in] limits_interface Limit interface for the robot.
      * @param[in] command_interface  Command interface to match with the limit
      * interface.
@@ -198,7 +201,6 @@ protected:
     /**
      * @brief Checks whether a resource list contains joints from this hardware
      * interface.
-     *
      * @param[in] claimed_resources List of claimed resources.
      * @return True if the list contains joints from this hardware interface,
      * false otherwise.
@@ -209,7 +211,6 @@ protected:
     /**
      * @brief Publishes external force applied on TCP in TCP frame \f$
      * ^{TCP}F_{ext}~[N][Nm] \f$ and base frame \f$ ^{0}F_{ext}~[N][Nm] \f$.
-     *
      */
     virtual void publishExternalForce();
 
@@ -239,6 +240,7 @@ protected:
     std::vector<double> joint_position_state_;
     std::vector<double> joint_velocity_state_;
     std::vector<double> joint_effort_state_;
+
     // External force
     std::vector<double> ext_force_in_tcp_;
     std::vector<double> ext_force_in_base_;
@@ -250,10 +252,10 @@ protected:
     std::vector<double> internal_joint_position_command_;
 
     // Controller
-    bool position_controller_running_;
-    bool velocity_controller_running_;
-    bool effort_controller_running_;
-    bool controllers_initialized_;
+    std::atomic<bool> position_controller_running_;
+    std::atomic<bool> velocity_controller_running_;
+    std::atomic<bool> effort_controller_running_;
+    std::atomic<bool> controllers_initialized_;
 
     // Publisher
     std::unique_ptr<
