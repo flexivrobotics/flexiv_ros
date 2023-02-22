@@ -22,6 +22,7 @@ position_joint_trajectory_controller:
   joints: *robot_joints
   constraints:
     goal_time: 0.5
+    stopped_velocity_tolerance: 0.01
     joint1: { goal: 0.05}
     joint2: { goal: 0.05}
     joint3: { goal: 0.05}

@@ -14,39 +14,26 @@
 #include "flexiv_hardware/flexiv_hardware_interface.h"
 
 namespace flexiv_hardware {
-FlexivHardwareInterface::FlexivHardwareInterface() { }
+FlexivHardwareInterface::FlexivHardwareInterface()
+: joint_position_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_velocity_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_effort_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_velocity_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_effort_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, internal_joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_force_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_force_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, position_controller_running_(false)
+, velocity_controller_running_(false)
+, effort_controller_running_(false)
+, controllers_initialized_(false)
+{
+}
 
 bool FlexivHardwareInterface::init(
     ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh)
 {
-    // States
-    joint_position_state_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-    joint_velocity_state_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-    joint_effort_state_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-
-    // External force
-    ext_force_in_tcp_.resize(6, std::numeric_limits<double>::quiet_NaN());
-    ext_force_in_base_.resize(6, std::numeric_limits<double>::quiet_NaN());
-
-    // Commands
-    joint_position_command_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-    joint_velocity_command_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-    joint_effort_command_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-    internal_joint_position_command_.resize(
-        num_joints_, std::numeric_limits<double>::quiet_NaN());
-
-    // Controller
-    position_controller_running_ = false;
-    velocity_controller_running_ = false;
-    effort_controller_running_ = false;
-    controllers_initialized_ = false;
-
     if (!initParameters(root_nh, robot_hw_nh)) {
         ROS_ERROR("Failed to parse all required parameters.");
         return false;
@@ -138,6 +125,7 @@ void FlexivHardwareInterface::initROSInterfaces(
     setupLimitInterface<joint_limits_interface::EffortJointSoftLimitsHandle>(
         effort_joint_limit_interface_, effort_joint_interface_);
 
+    // Register interfaces
     registerInterface(&joint_state_interface_); // From RobotHW base class.
     registerInterface(&position_joint_interface_); // From RobotHW base class.
     registerInterface(&velocity_joint_interface_); // From RobotHW base class.
@@ -239,28 +227,14 @@ void FlexivHardwareInterface::write(
     std::fill(target_acceleration.begin(), target_acceleration.end(), 0.0);
     std::fill(target_velocity.begin(), target_velocity.end(), 0.0);
 
-    bool isNanPos = false;
-    bool isNanVel = false;
-    bool isNanEff = false;
-    for (std::size_t i = 0; i < num_joints_; i++) {
-        if (joint_position_command_[i] != joint_position_command_[i]) {
-            isNanPos = true;
-        }
-        if (joint_velocity_command_[i] != joint_velocity_command_[i]) {
-            isNanVel = true;
-        }
-        if (joint_effort_command_[i] != joint_effort_command_[i]) {
-            isNanEff = true;
-        }
-    }
-
     if (position_controller_running_
-        && robot_->getMode() == flexiv::MODE_JOINT_POSITION && !isNanPos) {
+        && robot_->getMode() == flexiv::MODE_JOINT_POSITION
+        && !(vectorHasNan(joint_position_command_))) {
         robot_->streamJointPosition(
             joint_position_command_, target_velocity, target_acceleration);
     } else if (velocity_controller_running_
                && robot_->getMode() == flexiv::MODE_JOINT_POSITION
-               && !isNanVel) {
+               && !(vectorHasNan(joint_velocity_command_))) {
         for (std::size_t i = 0; i < num_joints_; i++) {
             internal_joint_position_command_[i]
                 += joint_velocity_command_[i] * period.toSec();
@@ -268,9 +242,24 @@ void FlexivHardwareInterface::write(
         robot_->streamJointPosition(internal_joint_position_command_,
             joint_velocity_command_, target_acceleration);
     } else if (effort_controller_running_
-               && robot_->getMode() == flexiv::MODE_JOINT_TORQUE && !isNanEff) {
+               && robot_->getMode() == flexiv::MODE_JOINT_TORQUE
+               && !(vectorHasNan(joint_effort_command_))) {
         robot_->streamJointTorque(joint_effort_command_, true, true);
     }
+}
+
+void FlexivHardwareInterface::setInitPosition()
+{
+    flexiv::RobotStates robot_states;
+
+    // Read the current joint positions
+    if (robot_->isOperational() && robot_->getMode() == flexiv::MODE_IDLE) {
+        robot_->getRobotStates(robot_states);
+        joint_position_state_ = robot_states.q;
+    }
+
+    // Set the initial joint position as command
+    joint_position_command_ = joint_position_state_;
 }
 
 void FlexivHardwareInterface::reset()
@@ -345,10 +334,9 @@ void FlexivHardwareInterface::doSwitch(
                     == "hardware_interface::PositionJointInterface") {
                     velocity_controller_running_ = false;
                     effort_controller_running_ = false;
-                    // Hold joints before user commands arrives
-                    std::fill(joint_position_command_.begin(),
-                        joint_position_command_.end(),
-                        std::numeric_limits<double>::quiet_NaN());
+
+                    // get current position and set to initial position
+                    setInitPosition();
 
                     // Set to joint position mode
                     robot_->setMode(flexiv::MODE_JOINT_POSITION);
@@ -358,15 +346,12 @@ void FlexivHardwareInterface::doSwitch(
                         std::this_thread::sleep_for(
                             std::chrono::milliseconds(1));
                     }
+
                     position_controller_running_ = true;
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::VelocityJointInterface") {
                     position_controller_running_ = false;
                     effort_controller_running_ = false;
-                    // Hold joints before user commands arrives
-                    std::fill(joint_velocity_command_.begin(),
-                        joint_velocity_command_.end(),
-                        std::numeric_limits<double>::quiet_NaN());
 
                     // Set to joint position mode
                     robot_->setMode(flexiv::MODE_JOINT_POSITION);
@@ -381,10 +366,6 @@ void FlexivHardwareInterface::doSwitch(
                            == "hardware_interface::EffortJointInterface") {
                     position_controller_running_ = false;
                     velocity_controller_running_ = false;
-                    // Hold joints before user commands arrives
-                    std::fill(joint_effort_command_.begin(),
-                        joint_effort_command_.end(),
-                        std::numeric_limits<double>::quiet_NaN());
 
                     // Set to joint torque mode
                     robot_->setMode(flexiv::MODE_JOINT_TORQUE);

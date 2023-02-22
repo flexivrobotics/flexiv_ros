@@ -131,6 +131,27 @@ protected:
     virtual bool initRobot();
 
     /**
+     * @brief Get current joint position and set the joint command with those
+     * values.
+     */
+    virtual void setInitPosition();
+
+    /**
+     * @brief Checks whether a vector of doubles contains NaN values.
+     * @param[in] vector The vector to check.
+     * @return True if the vector contains NaN values, false otherwise.
+     */
+    static bool vectorHasNan(const std::vector<double>& vector)
+    {
+        for (const double& value : vector) {
+            if (std::isnan(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @brief Configures a limit interface to enforce limits on effort, velocity
      * or position level on joint commands.
      * @param[in] limits_interface Limit interface for the robot.
@@ -231,10 +252,10 @@ protected:
     std::vector<double> internal_joint_position_command_;
 
     // Controller
-    bool position_controller_running_;
-    bool velocity_controller_running_;
-    bool effort_controller_running_;
-    bool controllers_initialized_;
+    std::atomic<bool> position_controller_running_;
+    std::atomic<bool> velocity_controller_running_;
+    std::atomic<bool> effort_controller_running_;
+    std::atomic<bool> controllers_initialized_;
 
     // Publisher
     std::unique_ptr<
