@@ -33,3 +33,23 @@ position_joint_trajectory_controller:
   stop_trajectory_duration: 0.5
   state_publish_rate: 100.0
   action_monitor_rate: 20.0
+
+joint_impedance_controller:
+  type: flexiv_controllers/JointImpedanceController
+  joints: *robot_joints
+  k_p:
+    - 3000.0
+    - 3000.0
+    - 800.0
+    - 800.0
+    - 200.0
+    - 200.0
+    - 200.0
+  k_d:
+    - 80.0
+    - 80.0
+    - 40.0
+    - 40.0
+    - 8.0
+    - 8.0
+    - 8.0

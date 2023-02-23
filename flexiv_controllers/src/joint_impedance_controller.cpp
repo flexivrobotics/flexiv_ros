@@ -8,7 +8,7 @@ bool JointImpedanceController::init(
 {
     // Get joint name from parameter server
     std::vector<std::string> joint_names;
-    if (!nh.getParam("joint_names", joint_names)) {
+    if (!nh.getParam("joints", joint_names)) {
         ROS_ERROR("JointImpedanceController: Could not parse joint names");
     }
     if (joint_names.size() != 7) {
@@ -83,5 +83,4 @@ void JointImpedanceController::update(
 
 } // namespace flexiv_controllers
 
-PLUGINLIB_EXPORT_CLASS(flexiv_controllers::JointImpedanceController,
-    controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(flexiv_controllers::JointImpedanceController, controller_interface::ControllerBase)
