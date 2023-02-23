@@ -17,9 +17,12 @@
 #include <controller_interface/controller.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
+#include <realtime_tools/realtime_buffer.h>
 #include <realtime_tools/realtime_publisher.h>
 #include <ros/node_handle.h>
+#include <flexiv_msgs/JointPosVel.h>
 #include <ros/time.h>
+#include <urdf/model.h>
 
 // Flexiv
 
@@ -29,8 +32,15 @@ class JointImpedanceController : public controller_interface::Controller<
                                      hardware_interface::EffortJointInterface>
 {
 public:
-    // JointImpedanceController();
-    // ~JointImpedanceController();
+    struct Commands
+    {
+        std::array<double, 7> positions_; // Last commanded position
+        std::array<double, 7> velocities_; // Last commanded velocity
+        bool has_velocity_; // false if no velocity command has been specified
+    };
+
+    JointImpedanceController() = default;
+    ~JointImpedanceController();
 
     bool init(
         hardware_interface::EffortJointInterface* hw, ros::NodeHandle& nh);
@@ -39,16 +49,26 @@ public:
 
     void starting(const ros::Time& time);
 
-    void setCommand(double pos_command);
+    void setCommand(std::array<double, 7> pos_command);
 
-    void setCommand(double pos_command, double vel_command);
+    void setCommand(
+        std::array<double, 7> pos_command, std::array<double, 7> vel_command);
 
 private:
     std::vector<hardware_interface::JointHandle> joints_;
+    std::vector<urdf::JointConstSharedPtr> joints_urdf_;
     std::vector<double> k_p_;
     std::vector<double> k_d_;
-    std::array<double, 7> q_init_;
     static const size_t num_joints_ = 7;
+
+    // Commands
+    realtime_tools::RealtimeBuffer<Commands> command_;
+    Commands command_struct_;
+    ros::Subscriber sub_command_;
+
+    void setCommandCB(const flexiv_msgs::JointPosVelConstPtr& msg);
+
+    void enforceJointLimits(int joint_index, double& pos_command);
 };
 
 } // namespace flexiv_controllers

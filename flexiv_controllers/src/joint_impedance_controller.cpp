@@ -3,6 +3,11 @@
 
 namespace flexiv_controllers {
 
+JointImpedanceController::~JointImpedanceController()
+{
+    sub_command_.shutdown();
+}
+
 bool JointImpedanceController::init(
     hardware_interface::EffortJointInterface* hw, ros::NodeHandle& nh)
 {
@@ -42,6 +47,10 @@ bool JointImpedanceController::init(
         }
     }
 
+    // Start command subscriber
+    sub_command_ = nh.subscribe<flexiv_msgs::JointPosVel>(
+        "command", 1, &JointImpedanceController::setCommandCB, this);
+
     // Get joint handles from hardware interface
     joints_.resize(num_joints_);
     for (std::size_t i = 0; i < num_joints_; ++i) {
@@ -55,32 +64,128 @@ bool JointImpedanceController::init(
         }
     }
 
+    // Get URDF info about joints
+    urdf::Model urdf;
+    if (!urdf.initParamWithNodeHandle("robot_description", nh)) {
+        ROS_ERROR("JointImpedanceController: Failed to parse urdf file");
+        return false;
+    }
+    joints_urdf_.resize(num_joints_);
+    for (std::size_t i = 0; i < num_joints_; ++i) {
+        joints_urdf_[i] = urdf.getJoint(joint_names[i]);
+        if (!joints_urdf_[i]) {
+            ROS_ERROR(
+                "JointImpedanceController: Could not find joint '%s' in urdf",
+                joint_names[i].c_str());
+            return false;
+        }
+    }
+
     return true;
+}
+
+void JointImpedanceController::setCommand(std::array<double, 7> pos_command)
+{
+    command_struct_.has_velocity_ = false;
+    for (std::size_t i = 0; i < num_joints_; ++i) {
+        command_struct_.positions_[i] = pos_command[i];
+    }
+
+    command_.writeFromNonRT(command_struct_);
+}
+
+void JointImpedanceController::setCommand(
+    std::array<double, 7> pos_command, std::array<double, 7> vel_command)
+{
+    command_struct_.has_velocity_ = true;
+    for (std::size_t i = 0; i < num_joints_; ++i) {
+        command_struct_.positions_[i] = pos_command[i];
+        command_struct_.velocities_[i] = pos_command[i];
+    }
+
+    command_.writeFromNonRT(command_struct_);
 }
 
 void JointImpedanceController::starting(const ros::Time& /*time*/)
 {
+    std::array<double, 7> pos_command;
+
     for (std::size_t i = 0; i < num_joints_; ++i) {
-        q_init_[i] = joints_[i].getPosition();
+        pos_command[i] = joints_[i].getPosition();
+        enforceJointLimits(i, pos_command[i]);
+        command_struct_.positions_[i] = pos_command[i];
     }
+    command_struct_.has_velocity_ = false;
+
+    command_.initRT(command_struct_);
 }
 
 void JointImpedanceController::update(
     const ros::Time& /*time*/, const ros::Duration& /*period*/)
 {
-    std::array<double, num_joints_> q_des = q_init_;
+    command_struct_ = *(command_.readFromRT());
 
     for (std::size_t i = 0; i < num_joints_; ++i) {
         // Get current joint positions and velocities
         double q = joints_[i].getPosition();
         double dq = joints_[i].getVelocity();
 
+        // Get target positions and velocities
+        double q_des = command_struct_.positions_[i];
+        double dq_des = 0;
+        if (command_struct_.has_velocity_) {
+            dq_des = command_struct_.velocities_[i];
+        }
+
+        enforceJointLimits(i, q_des);
+
         // Compute torque
-        double tau = k_p_[i] * (q_des[i] - q) - k_d_[i] * (dq);
+        double tau = k_p_[i] * (q_des - q) + k_d_[i] * (dq_des - dq);
         joints_[i].setCommand(tau);
+    }
+}
+
+void JointImpedanceController::setCommandCB(
+    const flexiv_msgs::JointPosVelConstPtr& msg)
+{
+    std::array<double, 7> command_positions;
+    std::array<double, 7> command_velocities;
+    if (msg->positions.size() == num_joints_
+        && msg->velocities.size() == num_joints_) {
+        memcpy(
+            &command_positions, &msg->positions[0], sizeof(command_positions));
+        memcpy(&command_velocities, &msg->velocities[0],
+            sizeof(command_velocities));
+        setCommand(command_positions, command_velocities);
+    } else if (msg->positions.size() == num_joints_
+               && msg->velocities.size() != num_joints_) {
+        memcpy(
+            &command_positions, &msg->positions[0], sizeof(command_positions));
+        setCommand(command_positions);
+    } else {
+        ROS_ERROR(
+            "JointImpedanceController: Invalid command message received!");
+    }
+}
+
+void JointImpedanceController::enforceJointLimits(
+    int joint_index, double& pos_command)
+{
+    if (joints_urdf_[joint_index]->type == urdf::Joint::REVOLUTE
+        || joints_urdf_[joint_index]->type == urdf::Joint::PRISMATIC) {
+        if (pos_command
+            > joints_urdf_[joint_index]->limits->upper) // above upper limnit
+        {
+            pos_command = joints_urdf_[joint_index]->limits->upper;
+        } else if (pos_command < joints_urdf_[joint_index]
+                                     ->limits->lower) // below lower limit
+        {
+            pos_command = joints_urdf_[joint_index]->limits->lower;
+        }
     }
 }
 
 } // namespace flexiv_controllers
 
-PLUGINLIB_EXPORT_CLASS(flexiv_controllers::JointImpedanceController, controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(flexiv_controllers::JointImpedanceController,
+    controller_interface::ControllerBase)
