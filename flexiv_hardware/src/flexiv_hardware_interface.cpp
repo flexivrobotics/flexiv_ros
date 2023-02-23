@@ -28,8 +28,7 @@ FlexivHardwareInterface::FlexivHardwareInterface()
 , velocity_controller_running_(false)
 , effort_controller_running_(false)
 , controllers_initialized_(false)
-{
-}
+{ }
 
 bool FlexivHardwareInterface::init(
     ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh)
@@ -156,6 +155,9 @@ bool FlexivHardwareInterface::initRobot()
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     ROS_INFO("Robot is now operational.");
+
+    // get current position and set to initial position
+    setInitPosition();
 
     return true;
 }
@@ -334,9 +336,6 @@ void FlexivHardwareInterface::doSwitch(
                     == "hardware_interface::PositionJointInterface") {
                     velocity_controller_running_ = false;
                     effort_controller_running_ = false;
-
-                    // get current position and set to initial position
-                    setInitPosition();
 
                     // Set to joint position mode
                     robot_->setMode(flexiv::MODE_JOINT_POSITION);
