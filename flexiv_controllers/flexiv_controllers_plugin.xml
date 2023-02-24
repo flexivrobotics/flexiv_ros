@@ -1,0 +1,7 @@
+<library path="lib/libflexiv_controllers">
+  <class name="flexiv_controllers/JointImpedanceController" type="flexiv_controllers::JointImpedanceController" base_class_type="controller_interface::ControllerBase">
+      <description>
+        The joint impedance controller commands a group of joints in effort interface.
+      </description>
+  </class>
+</library>

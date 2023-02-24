@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>flexiv_controllers</name>
+  <version>0.7.0</version>
+  <description>Flexiv custom ROS controllers</description>
+  <maintainer email="munseng.phoon@flexiv.com">Mun Seng Phoon</maintainer>
+  <license>Apache License 2.0</license>
+  <author email="munseng.phoon@flexiv.com">Mun Seng Phoon</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>controller_interface</build_depend>
+  <build_depend>controller_manager</build_depend>
+  <build_depend>hardware_interface</build_depend>
+  <build_depend>joint_limits_interface</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>realtime_tools</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>urdf</build_depend>
+  <build_depend>flexiv_msgs</build_depend>
+
+  <exec_depend>controller_interface</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>hardware_interface</exec_depend>
+  <exec_depend>joint_limits_interface</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>realtime_tools</exec_depend>
+  <exec_depend>urdf</exec_depend>
+  <exec_depend>flexiv_msgs</exec_depend>
+
+  <export>
+    <controller_interface plugin="${prefix}/flexiv_controllers_plugin.xml"/>
+  </export>
+</package>
