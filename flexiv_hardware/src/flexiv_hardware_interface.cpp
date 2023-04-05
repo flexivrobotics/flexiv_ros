@@ -203,7 +203,7 @@ void FlexivHardwareInterface::read(
     flexiv::RobotStates robot_states;
 
     // Read the current joint positions
-    if (robot_->isOperational() && robot_->getMode() != flexiv::MODE_IDLE) {
+    if (robot_->isOperational() && robot_->getMode() != flexiv::Mode::IDLE) {
         robot_->getRobotStates(robot_states);
         joint_position_state_ = robot_states.q;
         joint_velocity_state_ = robot_states.dtheta;
@@ -230,12 +230,12 @@ void FlexivHardwareInterface::write(
     std::fill(target_velocity.begin(), target_velocity.end(), 0.0);
 
     if (position_controller_running_
-        && robot_->getMode() == flexiv::MODE_JOINT_POSITION
+        && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
         && !(vectorHasNan(joint_position_command_))) {
         robot_->streamJointPosition(
             joint_position_command_, target_velocity, target_acceleration);
     } else if (velocity_controller_running_
-               && robot_->getMode() == flexiv::MODE_JOINT_POSITION
+               && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
                && !(vectorHasNan(joint_velocity_command_))) {
         for (std::size_t i = 0; i < num_joints_; i++) {
             internal_joint_position_command_[i]
@@ -244,7 +244,7 @@ void FlexivHardwareInterface::write(
         robot_->streamJointPosition(internal_joint_position_command_,
             joint_velocity_command_, target_acceleration);
     } else if (effort_controller_running_
-               && robot_->getMode() == flexiv::MODE_JOINT_TORQUE
+               && robot_->getMode() == flexiv::Mode::RT_JOINT_TORQUE
                && !(vectorHasNan(joint_effort_command_))) {
         robot_->streamJointTorque(joint_effort_command_, true, true);
     }
@@ -255,7 +255,7 @@ void FlexivHardwareInterface::setInitPosition()
     flexiv::RobotStates robot_states;
 
     // Read the current joint positions
-    if (robot_->isOperational() && robot_->getMode() == flexiv::MODE_IDLE) {
+    if (robot_->isOperational() && robot_->getMode() == flexiv::Mode::IDLE) {
         robot_->getRobotStates(robot_states);
         joint_position_state_ = robot_states.q;
     }
@@ -338,14 +338,7 @@ void FlexivHardwareInterface::doSwitch(
                     effort_controller_running_ = false;
 
                     // Set to joint position mode
-                    robot_->setMode(flexiv::MODE_JOINT_POSITION);
-
-                    // Wait for the mode to be switched
-                    while (robot_->getMode() != flexiv::MODE_JOINT_POSITION) {
-                        std::this_thread::sleep_for(
-                            std::chrono::milliseconds(1));
-                    }
-
+                    robot_->setMode(flexiv::Mode::RT_JOINT_POSITION);
                     position_controller_running_ = true;
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::VelocityJointInterface") {
@@ -353,13 +346,7 @@ void FlexivHardwareInterface::doSwitch(
                     effort_controller_running_ = false;
 
                     // Set to joint position mode
-                    robot_->setMode(flexiv::MODE_JOINT_POSITION);
-
-                    // Wait for the mode to be switched
-                    while (robot_->getMode() != flexiv::MODE_JOINT_POSITION) {
-                        std::this_thread::sleep_for(
-                            std::chrono::milliseconds(1));
-                    }
+                    robot_->setMode(flexiv::Mode::RT_JOINT_POSITION);
                     velocity_controller_running_ = true;
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::EffortJointInterface") {
@@ -367,13 +354,7 @@ void FlexivHardwareInterface::doSwitch(
                     velocity_controller_running_ = false;
 
                     // Set to joint torque mode
-                    robot_->setMode(flexiv::MODE_JOINT_TORQUE);
-
-                    // Wait for the mode to be switched
-                    while (robot_->getMode() != flexiv::MODE_JOINT_TORQUE) {
-                        std::this_thread::sleep_for(
-                            std::chrono::milliseconds(1));
-                    }
+                    robot_->setMode(flexiv::Mode::RT_JOINT_TORQUE);
                     effort_controller_running_ = true;
                 }
             }
