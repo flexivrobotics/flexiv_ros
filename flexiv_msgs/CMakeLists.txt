@@ -12,7 +12,7 @@ add_message_files(
   FILES
   CartesianState.msg
   CartesianVelocity.msg
-  ExternalForce.msg
+  ExternalWrench.msg
   JointPosVel.msg
   Mode.msg
   RobotStates.msg
