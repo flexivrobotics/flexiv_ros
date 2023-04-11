@@ -17,7 +17,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>urdf</build_depend>
-  <build_depend>flexiv_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
 
   <exec_depend>hardware_interface</exec_depend>
   <exec_depend>controller_manager</exec_depend>
@@ -27,7 +27,7 @@
   <exec_depend>urdf</exec_depend>
   <exec_depend>joint_limits_interface</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>flexiv_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
 
   <export>
     <hardware_interface plugin="${prefix}/flexiv_hardware_interface_plugin.xml"/>

@@ -23,9 +23,12 @@
 #include <joint_limits_interface/joint_limits_rosparam.h>
 #include <joint_limits_interface/joint_limits_urdf.h>
 
+// ROS Messages
+#include <geometry_msgs/Wrench.h>
+#include <geometry_msgs/Pose.h>
+
 // Flexiv
 #include "flexiv/Robot.hpp"
-#include "flexiv_msgs/ExternalForce.h"
 
 namespace flexiv_hardware {
 /**
@@ -209,10 +212,23 @@ protected:
         const std::set<std::string>& claimed_resources);
 
     /**
-     * @brief Publishes external force applied on TCP in TCP frame \f$
+     * @brief Publishes external wrench applied on TCP in TCP frame \f$
      * ^{TCP}F_{ext}~[N][Nm] \f$ and base frame \f$ ^{0}F_{ext}~[N][Nm] \f$.
      */
-    virtual void publishExternalForce();
+    virtual void publishExternalWrench();
+
+    /**
+     * @brief Publishes measured TCP pose in base frame \f$ ^{0}T_{TCP}~[m][]
+     * \f$.
+     */
+    virtual void publishTcpPose();
+
+    /**
+     * @brief Publishes force-torque (FT) sensor raw reading in flange frame \f$
+     * ^{flange}F_{raw}~[N][Nm] \f$. The value is 0 if no FT sensor is
+     * installed.
+     */
+    virtual void publishForceTorqueSensorState();
 
     // Hardware interfaces
     hardware_interface::JointStateInterface joint_state_interface_;
@@ -241,9 +257,15 @@ protected:
     std::vector<double> joint_velocity_state_;
     std::vector<double> joint_effort_state_;
 
-    // External force
-    std::vector<double> ext_force_in_tcp_;
-    std::vector<double> ext_force_in_base_;
+    // External TCP wrench
+    std::vector<double> ext_wrench_in_tcp_;
+    std::vector<double> ext_wrench_in_base_;
+
+    // TCP Pose
+    std::vector<double> tcp_pose_;
+
+    // Force Torque Sensor
+    std::vector<double> ft_sensor_state_;
 
     // Commands
     std::vector<double> joint_position_command_;
@@ -258,12 +280,14 @@ protected:
     std::atomic<bool> controllers_initialized_;
 
     // Publisher
-    std::unique_ptr<
-        realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>>
-        ext_force_in_tcp_pub_;
-    std::unique_ptr<
-        realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>>
-        ext_force_in_base_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ext_wrench_in_tcp_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ext_wrench_in_base_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ft_sensor_state_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Pose>>
+        tcp_pose_pub_;
 };
 } // namespace flexiv_hardware
 

@@ -22,8 +22,10 @@ FlexivHardwareInterface::FlexivHardwareInterface()
 , joint_velocity_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , joint_effort_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , internal_joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
-, ext_force_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
-, ext_force_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_wrench_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_wrench_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ft_sensor_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, tcp_pose_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , position_controller_running_(false)
 , velocity_controller_running_(false)
 , effort_controller_running_(false)
@@ -45,12 +47,18 @@ bool FlexivHardwareInterface::init(
     initROSInterfaces(robot_hw_nh);
 
     // Publisher
-    ext_force_in_tcp_pub_.reset(
-        new realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>(
-            root_nh, "external_force_in_tcp", 1));
-    ext_force_in_base_pub_.reset(
-        new realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>(
-            root_nh, "external_force_in_base", 1));
+    ext_wrench_in_tcp_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "external_wrench_in_tcp", 1));
+    ext_wrench_in_base_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "external_wrench_in_base", 1));
+    ft_sensor_state_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "wrench", 1));
+    tcp_pose_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Pose>(
+            root_nh, "tcp_pose", 1));
 
     ROS_INFO_STREAM_NAMED(
         "flexiv_hardware_interface", "Loaded Flexiv Hardware Interface.");
@@ -171,28 +179,60 @@ void FlexivHardwareInterface::enforceLimits(const ros::Duration& period)
     }
 }
 
-void FlexivHardwareInterface::publishExternalForce()
+void FlexivHardwareInterface::publishExternalWrench()
 {
-    if (ext_force_in_tcp_pub_) {
-        if (ext_force_in_tcp_pub_->trylock()) {
-            ext_force_in_tcp_pub_->msg_.force.x = ext_force_in_tcp_[0];
-            ext_force_in_tcp_pub_->msg_.force.y = ext_force_in_tcp_[1];
-            ext_force_in_tcp_pub_->msg_.force.z = ext_force_in_tcp_[2];
-            ext_force_in_tcp_pub_->msg_.moment.x = ext_force_in_tcp_[3];
-            ext_force_in_tcp_pub_->msg_.moment.y = ext_force_in_tcp_[4];
-            ext_force_in_tcp_pub_->msg_.moment.z = ext_force_in_tcp_[5];
-            ext_force_in_tcp_pub_->unlockAndPublish();
+    if (ext_wrench_in_tcp_pub_) {
+        if (ext_wrench_in_tcp_pub_->trylock()) {
+            ext_wrench_in_tcp_pub_->msg_.force.x = ext_wrench_in_tcp_[0];
+            ext_wrench_in_tcp_pub_->msg_.force.y = ext_wrench_in_tcp_[1];
+            ext_wrench_in_tcp_pub_->msg_.force.z = ext_wrench_in_tcp_[2];
+            ext_wrench_in_tcp_pub_->msg_.torque.x = ext_wrench_in_tcp_[3];
+            ext_wrench_in_tcp_pub_->msg_.torque.y = ext_wrench_in_tcp_[4];
+            ext_wrench_in_tcp_pub_->msg_.torque.z = ext_wrench_in_tcp_[5];
+            ext_wrench_in_tcp_pub_->unlockAndPublish();
         }
     }
-    if (ext_force_in_base_pub_) {
-        if (ext_force_in_base_pub_->trylock()) {
-            ext_force_in_base_pub_->msg_.force.x = ext_force_in_base_[0];
-            ext_force_in_base_pub_->msg_.force.y = ext_force_in_base_[1];
-            ext_force_in_base_pub_->msg_.force.z = ext_force_in_base_[2];
-            ext_force_in_base_pub_->msg_.moment.x = ext_force_in_base_[3];
-            ext_force_in_base_pub_->msg_.moment.y = ext_force_in_base_[4];
-            ext_force_in_base_pub_->msg_.moment.z = ext_force_in_base_[5];
-            ext_force_in_base_pub_->unlockAndPublish();
+    if (ext_wrench_in_base_pub_) {
+        if (ext_wrench_in_base_pub_->trylock()) {
+            ext_wrench_in_base_pub_->msg_.force.x = ext_wrench_in_base_[0];
+            ext_wrench_in_base_pub_->msg_.force.y = ext_wrench_in_base_[1];
+            ext_wrench_in_base_pub_->msg_.force.z = ext_wrench_in_base_[2];
+            ext_wrench_in_base_pub_->msg_.torque.x = ext_wrench_in_base_[3];
+            ext_wrench_in_base_pub_->msg_.torque.y = ext_wrench_in_base_[4];
+            ext_wrench_in_base_pub_->msg_.torque.z = ext_wrench_in_base_[5];
+            ext_wrench_in_base_pub_->unlockAndPublish();
+        }
+    }
+}
+
+void FlexivHardwareInterface::publishTcpPose()
+{
+    if (tcp_pose_pub_) {
+        if (tcp_pose_pub_->trylock()) {
+            tcp_pose_pub_->msg_.position.x = tcp_pose_[0];
+            tcp_pose_pub_->msg_.position.y = tcp_pose_[1];
+            tcp_pose_pub_->msg_.position.z = tcp_pose_[2];
+            // Convert quaternion order from [w, x, y, z] to [x, y, z, w]
+            tcp_pose_pub_->msg_.orientation.x = tcp_pose_[4];
+            tcp_pose_pub_->msg_.orientation.y = tcp_pose_[5];
+            tcp_pose_pub_->msg_.orientation.z = tcp_pose_[6];
+            tcp_pose_pub_->msg_.orientation.w = tcp_pose_[3];
+            tcp_pose_pub_->unlockAndPublish();
+        }
+    }
+}
+
+void FlexivHardwareInterface::publishForceTorqueSensorState()
+{
+    if (ft_sensor_state_pub_) {
+        if (ft_sensor_state_pub_->trylock()) {
+            ft_sensor_state_pub_->msg_.force.x = ft_sensor_state_[0];
+            ft_sensor_state_pub_->msg_.force.y = ft_sensor_state_[1];
+            ft_sensor_state_pub_->msg_.force.z = ft_sensor_state_[2];
+            ft_sensor_state_pub_->msg_.torque.x = ft_sensor_state_[3];
+            ft_sensor_state_pub_->msg_.torque.y = ft_sensor_state_[4];
+            ft_sensor_state_pub_->msg_.torque.z = ft_sensor_state_[5];
+            ft_sensor_state_pub_->unlockAndPublish();
         }
     }
 }
@@ -208,14 +248,18 @@ void FlexivHardwareInterface::read(
         joint_position_state_ = robot_states.q;
         joint_velocity_state_ = robot_states.dtheta;
         joint_effort_state_ = robot_states.tau;
-
-        ext_force_in_tcp_ = robot_states.extWrenchInTcp;
-        ext_force_in_base_ = robot_states.extWrenchInBase;
-
         internal_joint_position_command_ = joint_position_state_;
+
+        ext_wrench_in_base_ = robot_states.extWrenchInBase;
+        ext_wrench_in_tcp_ = robot_states.extWrenchInTcp;
+        ft_sensor_state_ = robot_states.ftSensorRaw;
+
+        tcp_pose_ = robot_states.tcpPose;
     }
 
-    publishExternalForce();
+    publishExternalWrench();
+    publishForceTorqueSensorState();
+    publishTcpPose();
 }
 
 void FlexivHardwareInterface::write(

@@ -8,9 +8,9 @@ RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like
 
 ## Compatibility
 
-| **Supported OS**          | **Supported ROS distribution**                  |
-|---------------------------|-------------------------------------------------|
-| Ubuntu 20.04              | [Noetic Ninjemys](https://wiki.ros.org/noetic/) |
+| **Supported OS** | **Supported ROS distribution**         |
+| ---------------------- | -------------------------------------------- |
+| Ubuntu 20.04           | [Noetic Ninjemys](https://wiki.ros.org/noetic/) |
 
 ## Building
 
@@ -84,8 +84,8 @@ You should get a RViZ window with the robot in the planning scene. You can use t
 
 The following ROS topics are published by the robot driver:
 
-- `/external_force_in_tcp`: Estimated external force applied on TCP in TCP frame $^{TCP}F_{ext}~[N][Nm]$ in force and moment. [`flexiv_msgs/ExternalForce.msg`]
-
-- `/external_force_in_base`: Estimated external force applied on TCP in the base frame $^{0}F_{ext}~[N][Nm]$ in force and moment. [`flexiv_msgs/ExternalForce.msg`]
-
 - `/joint_states`: Joint states of the robot. [[`sensor_msgs/JointState.msg`](https://docs.ros.org/en/noetic/api/sensor_msgs/html/msg/JointState.html)]
+- `/external_wrench_in_tcp`: Estimated external wrench applied on TCP and expressed in TCP frame $^{TCP}F_{ext}$ in force $[N]$ and moment $[Nm]$. [[`geometry_msgs/Wrench.msg`](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Wrench.html)]
+- `/external_wrench_in_base`: Estimated external wrench applied on TCP and expressed in base frame $^{0}F_{ext}$ in force $[N]$ and moment $[Nm]$. [[`geometry_msgs/Wrench.msg`](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Wrench.html)]
+- `/wrench`: Force-torque (FT) sensor raw reading in flange frame $^{flange}F_{raw}$ in force $[N]$ and moment $[Nm]$. The value is 0 if no FT sensor is installed. [[`geometry_msgs/Wrench.msg`](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Wrench.html)]
+- `/tcp_pose`: Measured TCP pose in base frame $^{0}T_{TCP}$ in position $[m]$ and quaternion. [[`geometry_msgs/Pose.msg`](https://docs.ros.org/en/noetic/api/geometry_msgs/html/msg/Pose.html)]
