@@ -1,6 +1,6 @@
 /**
  * @file flexiv_hardware_interface_node.cpp
- * Hardware interface node to run the control loop.
+ * @brief Hardware interface node to run the control loop.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */

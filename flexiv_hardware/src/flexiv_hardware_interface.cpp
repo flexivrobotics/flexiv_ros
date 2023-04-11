@@ -1,6 +1,6 @@
 /**
  * @file flexiv_hardware_interface.cpp
- * Hardware interface to Flexiv robots for ros_control.
+ * @brief Hardware interface to Flexiv robots for ros_control.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */
