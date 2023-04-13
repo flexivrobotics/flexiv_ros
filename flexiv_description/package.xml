@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>flexiv_description</name>
-  <version>0.7.0</version>
+  <version>0.8.0</version>
   <description>URDF description for flexiv arms</description>
   <author email="munseng.phoon@flexiv.com">Mun Seng Phoon</author>
   <maintainer email="munseng.phoon@flexiv.com">Mun Seng Phoon</maintainer>

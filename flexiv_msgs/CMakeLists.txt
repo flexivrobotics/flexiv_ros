@@ -10,9 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  CartesianState.msg
-  CartesianVelocity.msg
-  ExternalForce.msg
   JointPosVel.msg
   Mode.msg
   RobotStates.msg

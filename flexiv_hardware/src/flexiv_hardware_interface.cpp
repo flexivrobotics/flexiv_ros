@@ -1,6 +1,6 @@
 /**
  * @file flexiv_hardware_interface.cpp
- * Hardware interface to Flexiv robots for ros_control.
+ * @brief Hardware interface to Flexiv robots for ros_control.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */
@@ -14,32 +14,27 @@
 #include "flexiv_hardware/flexiv_hardware_interface.h"
 
 namespace flexiv_hardware {
-FlexivHardwareInterface::FlexivHardwareInterface() { }
+FlexivHardwareInterface::FlexivHardwareInterface()
+: joint_position_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_velocity_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_effort_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_velocity_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, joint_effort_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, internal_joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_wrench_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ext_wrench_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, ft_sensor_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, tcp_pose_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+, position_controller_running_(false)
+, velocity_controller_running_(false)
+, effort_controller_running_(false)
+, controllers_initialized_(false)
+{ }
 
 bool FlexivHardwareInterface::init(
     ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh)
 {
-    // States
-    joint_position_state_.resize(num_joints_, 0.0);
-    joint_velocity_state_.resize(num_joints_, 0.0);
-    joint_effort_state_.resize(num_joints_, 0.0);
-
-    // External force
-    ext_force_in_tcp_.resize(6, 0.0);
-    ext_force_in_base_.resize(6, 0.0);
-
-    // Commands
-    joint_position_command_.resize(num_joints_, 0.0);
-    joint_velocity_command_.resize(num_joints_, 0.0);
-    joint_effort_command_.resize(num_joints_, 0.0);
-    internal_joint_position_command_.resize(num_joints_, 0.0);
-
-    // Controller
-    position_controller_running_ = false;
-    velocity_controller_running_ = false;
-    effort_controller_running_ = false;
-    controllers_initialized_ = false;
-
     if (!initParameters(root_nh, robot_hw_nh)) {
         ROS_ERROR("Failed to parse all required parameters.");
         return false;
@@ -52,12 +47,18 @@ bool FlexivHardwareInterface::init(
     initROSInterfaces(robot_hw_nh);
 
     // Publisher
-    ext_force_in_tcp_pub_.reset(
-        new realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>(
-            root_nh, "external_force_in_tcp", 1));
-    ext_force_in_base_pub_.reset(
-        new realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>(
-            root_nh, "external_force_in_base", 1));
+    ext_wrench_in_tcp_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "external_wrench_in_tcp", 1));
+    ext_wrench_in_base_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "external_wrench_in_base", 1));
+    ft_sensor_state_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Wrench>(
+            root_nh, "wrench", 1));
+    tcp_pose_pub_.reset(
+        new realtime_tools::RealtimePublisher<geometry_msgs::Pose>(
+            root_nh, "tcp_pose", 1));
 
     ROS_INFO_STREAM_NAMED(
         "flexiv_hardware_interface", "Loaded Flexiv Hardware Interface.");
@@ -131,6 +132,7 @@ void FlexivHardwareInterface::initROSInterfaces(
     setupLimitInterface<joint_limits_interface::EffortJointSoftLimitsHandle>(
         effort_joint_limit_interface_, effort_joint_interface_);
 
+    // Register interfaces
     registerInterface(&joint_state_interface_); // From RobotHW base class.
     registerInterface(&position_joint_interface_); // From RobotHW base class.
     registerInterface(&velocity_joint_interface_); // From RobotHW base class.
@@ -177,28 +179,60 @@ void FlexivHardwareInterface::enforceLimits(const ros::Duration& period)
     }
 }
 
-void FlexivHardwareInterface::publishExternalForce()
+void FlexivHardwareInterface::publishExternalWrench()
 {
-    if (ext_force_in_tcp_pub_) {
-        if (ext_force_in_tcp_pub_->trylock()) {
-            ext_force_in_tcp_pub_->msg_.force.x = ext_force_in_tcp_[0];
-            ext_force_in_tcp_pub_->msg_.force.y = ext_force_in_tcp_[1];
-            ext_force_in_tcp_pub_->msg_.force.z = ext_force_in_tcp_[2];
-            ext_force_in_tcp_pub_->msg_.moment.x = ext_force_in_tcp_[3];
-            ext_force_in_tcp_pub_->msg_.moment.y = ext_force_in_tcp_[4];
-            ext_force_in_tcp_pub_->msg_.moment.z = ext_force_in_tcp_[5];
-            ext_force_in_tcp_pub_->unlockAndPublish();
+    if (ext_wrench_in_tcp_pub_) {
+        if (ext_wrench_in_tcp_pub_->trylock()) {
+            ext_wrench_in_tcp_pub_->msg_.force.x = ext_wrench_in_tcp_[0];
+            ext_wrench_in_tcp_pub_->msg_.force.y = ext_wrench_in_tcp_[1];
+            ext_wrench_in_tcp_pub_->msg_.force.z = ext_wrench_in_tcp_[2];
+            ext_wrench_in_tcp_pub_->msg_.torque.x = ext_wrench_in_tcp_[3];
+            ext_wrench_in_tcp_pub_->msg_.torque.y = ext_wrench_in_tcp_[4];
+            ext_wrench_in_tcp_pub_->msg_.torque.z = ext_wrench_in_tcp_[5];
+            ext_wrench_in_tcp_pub_->unlockAndPublish();
         }
     }
-    if (ext_force_in_base_pub_) {
-        if (ext_force_in_base_pub_->trylock()) {
-            ext_force_in_base_pub_->msg_.force.x = ext_force_in_base_[0];
-            ext_force_in_base_pub_->msg_.force.y = ext_force_in_base_[1];
-            ext_force_in_base_pub_->msg_.force.z = ext_force_in_base_[2];
-            ext_force_in_base_pub_->msg_.moment.x = ext_force_in_base_[3];
-            ext_force_in_base_pub_->msg_.moment.y = ext_force_in_base_[4];
-            ext_force_in_base_pub_->msg_.moment.z = ext_force_in_base_[5];
-            ext_force_in_base_pub_->unlockAndPublish();
+    if (ext_wrench_in_base_pub_) {
+        if (ext_wrench_in_base_pub_->trylock()) {
+            ext_wrench_in_base_pub_->msg_.force.x = ext_wrench_in_base_[0];
+            ext_wrench_in_base_pub_->msg_.force.y = ext_wrench_in_base_[1];
+            ext_wrench_in_base_pub_->msg_.force.z = ext_wrench_in_base_[2];
+            ext_wrench_in_base_pub_->msg_.torque.x = ext_wrench_in_base_[3];
+            ext_wrench_in_base_pub_->msg_.torque.y = ext_wrench_in_base_[4];
+            ext_wrench_in_base_pub_->msg_.torque.z = ext_wrench_in_base_[5];
+            ext_wrench_in_base_pub_->unlockAndPublish();
+        }
+    }
+}
+
+void FlexivHardwareInterface::publishTcpPose()
+{
+    if (tcp_pose_pub_) {
+        if (tcp_pose_pub_->trylock()) {
+            tcp_pose_pub_->msg_.position.x = tcp_pose_[0];
+            tcp_pose_pub_->msg_.position.y = tcp_pose_[1];
+            tcp_pose_pub_->msg_.position.z = tcp_pose_[2];
+            // Convert quaternion order from [w, x, y, z] to [x, y, z, w]
+            tcp_pose_pub_->msg_.orientation.x = tcp_pose_[4];
+            tcp_pose_pub_->msg_.orientation.y = tcp_pose_[5];
+            tcp_pose_pub_->msg_.orientation.z = tcp_pose_[6];
+            tcp_pose_pub_->msg_.orientation.w = tcp_pose_[3];
+            tcp_pose_pub_->unlockAndPublish();
+        }
+    }
+}
+
+void FlexivHardwareInterface::publishForceTorqueSensorState()
+{
+    if (ft_sensor_state_pub_) {
+        if (ft_sensor_state_pub_->trylock()) {
+            ft_sensor_state_pub_->msg_.force.x = ft_sensor_state_[0];
+            ft_sensor_state_pub_->msg_.force.y = ft_sensor_state_[1];
+            ft_sensor_state_pub_->msg_.force.z = ft_sensor_state_[2];
+            ft_sensor_state_pub_->msg_.torque.x = ft_sensor_state_[3];
+            ft_sensor_state_pub_->msg_.torque.y = ft_sensor_state_[4];
+            ft_sensor_state_pub_->msg_.torque.z = ft_sensor_state_[5];
+            ft_sensor_state_pub_->unlockAndPublish();
         }
     }
 }
@@ -209,19 +243,23 @@ void FlexivHardwareInterface::read(
     flexiv::RobotStates robot_states;
 
     // Read the current joint positions
-    if (robot_->isOperational() && robot_->getMode() != flexiv::MODE_IDLE) {
+    if (robot_->isOperational() && robot_->getMode() != flexiv::Mode::IDLE) {
         robot_->getRobotStates(robot_states);
         joint_position_state_ = robot_states.q;
         joint_velocity_state_ = robot_states.dtheta;
         joint_effort_state_ = robot_states.tau;
-
-        ext_force_in_tcp_ = robot_states.extWrenchInTcp;
-        ext_force_in_base_ = robot_states.extWrenchInBase;
-
         internal_joint_position_command_ = joint_position_state_;
+
+        ext_wrench_in_base_ = robot_states.extWrenchInBase;
+        ext_wrench_in_tcp_ = robot_states.extWrenchInTcp;
+        ft_sensor_state_ = robot_states.ftSensorRaw;
+
+        tcp_pose_ = robot_states.tcpPose;
     }
 
-    publishExternalForce();
+    publishExternalWrench();
+    publishForceTorqueSensorState();
+    publishTcpPose();
 }
 
 void FlexivHardwareInterface::write(
@@ -236,20 +274,23 @@ void FlexivHardwareInterface::write(
     std::fill(target_velocity.begin(), target_velocity.end(), 0.0);
 
     if (position_controller_running_
-        && robot_->getMode() == flexiv::MODE_JOINT_POSITION) {
+        && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
+        && !(vectorHasNan(joint_position_command_))) {
         robot_->streamJointPosition(
             joint_position_command_, target_velocity, target_acceleration);
     } else if (velocity_controller_running_
-               && robot_->getMode() == flexiv::MODE_JOINT_POSITION) {
+               && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
+               && !(vectorHasNan(joint_velocity_command_))) {
         for (std::size_t i = 0; i < num_joints_; i++) {
             internal_joint_position_command_[i]
                 += joint_velocity_command_[i] * period.toSec();
         }
         robot_->streamJointPosition(internal_joint_position_command_,
-            target_velocity, target_acceleration);
+            joint_velocity_command_, target_acceleration);
     } else if (effort_controller_running_
-               && robot_->getMode() == flexiv::MODE_JOINT_TORQUE) {
-        robot_->streamJointTorque(joint_effort_command_);
+               && robot_->getMode() == flexiv::Mode::RT_JOINT_TORQUE
+               && !(vectorHasNan(joint_effort_command_))) {
+        robot_->streamJointTorque(joint_effort_command_, true, true);
     }
 }
 
@@ -258,12 +299,12 @@ void FlexivHardwareInterface::setInitPosition()
     flexiv::RobotStates robot_states;
 
     // Read the current joint positions
-    if (robot_->isOperational()) {
+    if (robot_->isOperational() && robot_->getMode() == flexiv::Mode::IDLE) {
         robot_->getRobotStates(robot_states);
         joint_position_state_ = robot_states.q;
     }
 
-    // set the initial joint position as command
+    // Set the initial joint position as command
     joint_position_command_ = joint_position_state_;
 }
 
@@ -319,12 +360,15 @@ void FlexivHardwareInterface::doSwitch(
                 if (resource_it.hardware_interface
                     == "hardware_interface::PositionJointInterface") {
                     position_controller_running_ = false;
+                    robot_->stop();
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::VelocityJointInterface") {
                     velocity_controller_running_ = false;
+                    robot_->stop();
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::EffortJointInterface") {
                     effort_controller_running_ = false;
+                    robot_->stop();
                 }
             }
         }
@@ -336,26 +380,26 @@ void FlexivHardwareInterface::doSwitch(
                     == "hardware_interface::PositionJointInterface") {
                     velocity_controller_running_ = false;
                     effort_controller_running_ = false;
+
+                    // Set to joint position mode
+                    robot_->setMode(flexiv::Mode::RT_JOINT_POSITION);
                     position_controller_running_ = true;
-                    if (robot_->getMode() != flexiv::MODE_JOINT_POSITION) {
-                        robot_->setMode(flexiv::MODE_JOINT_POSITION);
-                    }
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::VelocityJointInterface") {
                     position_controller_running_ = false;
                     effort_controller_running_ = false;
+
+                    // Set to joint position mode
+                    robot_->setMode(flexiv::Mode::RT_JOINT_POSITION);
                     velocity_controller_running_ = true;
-                    if (robot_->getMode() != flexiv::MODE_JOINT_POSITION) {
-                        robot_->setMode(flexiv::MODE_JOINT_POSITION);
-                    }
                 } else if (resource_it.hardware_interface
                            == "hardware_interface::EffortJointInterface") {
                     position_controller_running_ = false;
                     velocity_controller_running_ = false;
+
+                    // Set to joint torque mode
+                    robot_->setMode(flexiv::Mode::RT_JOINT_TORQUE);
                     effort_controller_running_ = true;
-                    if (robot_->getMode() != flexiv::MODE_JOINT_TORQUE) {
-                        robot_->setMode(flexiv::MODE_JOINT_TORQUE);
-                    }
                 }
             }
         }

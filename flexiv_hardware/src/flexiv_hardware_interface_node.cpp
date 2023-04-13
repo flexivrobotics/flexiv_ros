@@ -1,6 +1,6 @@
 /**
  * @file flexiv_hardware_interface_node.cpp
- * Hardware interface node to run the control loop.
+ * @brief Hardware interface node to run the control loop.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */
@@ -35,6 +35,7 @@ int main(int argc, char** argv)
         ROS_ERROR("Failed to initialize Flexiv Hardware Interface.");
         exit(1);
     }
+
     // Create the controller manager
     controller_manager::ControllerManager cm(
         flexiv_hardware_interface.get(), nh);

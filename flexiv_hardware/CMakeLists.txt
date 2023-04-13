@@ -8,7 +8,7 @@ option(BUILD_FOR_ARM64 "Link to RDK library for arm64 processor, otherwise link 
 
 find_package(catkin REQUIRED COMPONENTS
   controller_manager
-  flexiv_msgs
+  geometry_msgs
   hardware_interface
   joint_limits_interface
   pluginlib
@@ -23,7 +23,7 @@ catkin_package(
     include
   CATKIN_DEPENDS
     controller_manager
-    flexiv_msgs
+    geometry_msgs
     hardware_interface
     joint_limits_interface
     pluginlib

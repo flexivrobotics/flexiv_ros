@@ -1,6 +1,6 @@
 /**
  * @file flexiv_hardware_interface.hpp
- * Hardware interface to Flexiv robots for ros_control.
+ * @brief Hardware interface to Flexiv robots for ros_control.
  * @copyright Copyright (C) 2016-2021 Flexiv Ltd. All Rights Reserved.
  * @author Flexiv
  */
@@ -23,9 +23,12 @@
 #include <joint_limits_interface/joint_limits_rosparam.h>
 #include <joint_limits_interface/joint_limits_urdf.h>
 
+// ROS Messages
+#include <geometry_msgs/Wrench.h>
+#include <geometry_msgs/Pose.h>
+
 // Flexiv
 #include "flexiv/Robot.hpp"
-#include "flexiv_msgs/ExternalForce.h"
 
 namespace flexiv_hardware {
 /**
@@ -38,7 +41,6 @@ class FlexivHardwareInterface : public hardware_interface::RobotHW
 public:
     /**
      * @brief Construct a new FlexivHardwareInterface object
-     *
      */
     FlexivHardwareInterface();
 
@@ -48,7 +50,6 @@ public:
      * @brief Handles the setup functionality for the ROS interface. This
      * includes parsing ROS parameters, connecting to the robot, and setting up
      * hardware interfaces for ros_control.
-     *
      * @param[in] root_nh Root level ROS node handle.
      * @param[in] robot_hw_nh ROS node handle for the robot namespace.
      * @return True if successful, false otherwise.
@@ -59,7 +60,6 @@ public:
     /**
      * @brief Reads the parameterization of the hardware class from the ROS
      * parameter server (e.g. local_ip, robot_ip, joint_names etc.)
-     *
      * @param[in] root_nh A node handle in the root namespace of the control
      * node.
      * @param[in] robot_hw_nh A node handle in the namespace of the robot
@@ -71,7 +71,6 @@ public:
 
     /**
      * @brief Initializes the class in terms of ros_control interfaces.
-     *
      * @note You have to call initParameters beforehand. Use the complete
      * initialization routine \ref init() method to control robots.
      * @param[in] robot_hw_nh A node handle in the namespace of the robot
@@ -81,7 +80,6 @@ public:
 
     /**
      * @brief Reads data from the robot.
-     *
      * @param[in] time Current time.
      * @param[in] period Duration of current control loop iteration.
      */
@@ -90,7 +88,6 @@ public:
 
     /**
      * @brief Writes data to the robot.
-     *
      * @param[in] time Current time.
      * @param[in] period Duration of current control loop iteration.
      */
@@ -99,13 +96,11 @@ public:
 
     /**
      * @brief Set all members to default values.
-     *
      */
     virtual void reset();
 
     /**
      * @brief Prepares switching between controllers.
-     *
      * @param[in] start_list List of requested controllers to start.
      * @param[in] stop_list List of requested controllers to stop.
      * @return True if the preparation has been successful, false otherwise.
@@ -117,7 +112,6 @@ public:
 
     /**
      * @brief Perform controllers switching.
-     *
      * @param[in] start_list List of requested controllers to start.
      * @param[in] stop_list List of requested controllers to stop.
      */
@@ -126,8 +120,8 @@ public:
         const std::list<hardware_interface::ControllerInfo>& stop_list)
         override;
 
-    /** @brief Enforce limits on position, velocity, and effort.
-     *
+    /**
+     * @brief Enforce limits on position, velocity, and effort.
      * @param[in] period The duration of the current cycle.
      */
     virtual void enforceLimits(const ros::Duration& period);
@@ -135,7 +129,6 @@ public:
 protected:
     /**
      * @brief Uses the robot_ip to connect to the robot via RDK.
-     *
      * @return True if successful, false otherwise.
      */
     virtual bool initRobot();
@@ -143,14 +136,27 @@ protected:
     /**
      * @brief Get current joint position and set the joint command with those
      * values.
-     *
      */
     virtual void setInitPosition();
 
     /**
+     * @brief Checks whether a vector of doubles contains NaN values.
+     * @param[in] vector The vector to check.
+     * @return True if the vector contains NaN values, false otherwise.
+     */
+    static bool vectorHasNan(const std::vector<double>& vector)
+    {
+        for (const double& value : vector) {
+            if (std::isnan(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @brief Configures a limit interface to enforce limits on effort, velocity
      * or position level on joint commands.
-     *
      * @param[in] limits_interface Limit interface for the robot.
      * @param[in] command_interface  Command interface to match with the limit
      * interface.
@@ -198,7 +204,6 @@ protected:
     /**
      * @brief Checks whether a resource list contains joints from this hardware
      * interface.
-     *
      * @param[in] claimed_resources List of claimed resources.
      * @return True if the list contains joints from this hardware interface,
      * false otherwise.
@@ -207,11 +212,23 @@ protected:
         const std::set<std::string>& claimed_resources);
 
     /**
-     * @brief Publishes external force applied on TCP in TCP frame \f$
+     * @brief Publishes external wrench applied on TCP in TCP frame \f$
      * ^{TCP}F_{ext}~[N][Nm] \f$ and base frame \f$ ^{0}F_{ext}~[N][Nm] \f$.
-     *
      */
-    virtual void publishExternalForce();
+    virtual void publishExternalWrench();
+
+    /**
+     * @brief Publishes measured TCP pose in base frame \f$ ^{0}T_{TCP}~[m][]
+     * \f$.
+     */
+    virtual void publishTcpPose();
+
+    /**
+     * @brief Publishes force-torque (FT) sensor raw reading in flange frame \f$
+     * ^{flange}F_{raw}~[N][Nm] \f$. The value is 0 if no FT sensor is
+     * installed.
+     */
+    virtual void publishForceTorqueSensorState();
 
     // Hardware interfaces
     hardware_interface::JointStateInterface joint_state_interface_;
@@ -239,9 +256,16 @@ protected:
     std::vector<double> joint_position_state_;
     std::vector<double> joint_velocity_state_;
     std::vector<double> joint_effort_state_;
-    // External force
-    std::vector<double> ext_force_in_tcp_;
-    std::vector<double> ext_force_in_base_;
+
+    // External TCP wrench
+    std::vector<double> ext_wrench_in_tcp_;
+    std::vector<double> ext_wrench_in_base_;
+
+    // TCP Pose
+    std::vector<double> tcp_pose_;
+
+    // Force Torque Sensor
+    std::vector<double> ft_sensor_state_;
 
     // Commands
     std::vector<double> joint_position_command_;
@@ -250,18 +274,20 @@ protected:
     std::vector<double> internal_joint_position_command_;
 
     // Controller
-    bool position_controller_running_;
-    bool velocity_controller_running_;
-    bool effort_controller_running_;
-    bool controllers_initialized_;
+    std::atomic<bool> position_controller_running_;
+    std::atomic<bool> velocity_controller_running_;
+    std::atomic<bool> effort_controller_running_;
+    std::atomic<bool> controllers_initialized_;
 
     // Publisher
-    std::unique_ptr<
-        realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>>
-        ext_force_in_tcp_pub_;
-    std::unique_ptr<
-        realtime_tools::RealtimePublisher<flexiv_msgs::ExternalForce>>
-        ext_force_in_base_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ext_wrench_in_tcp_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ext_wrench_in_base_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Wrench>>
+        ft_sensor_state_pub_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<geometry_msgs::Pose>>
+        tcp_pose_pub_;
 };
 } // namespace flexiv_hardware
 

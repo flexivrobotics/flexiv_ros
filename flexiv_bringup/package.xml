@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>flexiv_bringup</name>
-  <version>0.7.0</version>
+  <version>0.8.0</version>
   <description>Package with launch files and run-time configurations for Flexiv robots with `ros_control`</description>
   <author email="munseng.phoon@flexiv.com">Mun Seng Phoon</author>
   <maintainer email="munseng.phoon@flexiv.com">Mun Seng Phoon</maintainer>
@@ -11,6 +11,7 @@
 
   <exec_depend>flexiv_description</exec_depend>
   <exec_depend>flexiv_hardware</exec_depend>
+  <exec_depend>flexiv_controllers</exec_depend>
   <exec_depend>xacro</exec_depend>
 
 </package>
