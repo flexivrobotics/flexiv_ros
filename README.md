@@ -1,5 +1,8 @@
 # Flexiv ROS
 
+[![Industrial CI](https://github.com/flexivrobotics/flexiv_ros/actions/workflows/ci.yml/badge.svg)](https://github.com/flexivrobotics/flexiv_ros/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like real-time joint torque and position control, `ros_control` and MoveIt! integrations are implemented.
 
 ## References
