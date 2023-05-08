@@ -100,7 +100,7 @@ void JointImpedanceController::setCommand(
     command_struct_.has_velocity_ = true;
     for (std::size_t i = 0; i < num_joints_; ++i) {
         command_struct_.positions_[i] = pos_command[i];
-        command_struct_.velocities_[i] = pos_command[i];
+        command_struct_.velocities_[i] = vel_command[i];
     }
 
     command_.writeFromNonRT(command_struct_);
