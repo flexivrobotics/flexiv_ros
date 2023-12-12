@@ -4,8 +4,6 @@ project(flexiv_hardware)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_FOR_ARM64 "Link to RDK library for arm64 processor, otherwise link to x64" OFF)
-
 find_package(catkin REQUIRED COMPONENTS
   controller_manager
   geometry_msgs
@@ -35,11 +33,29 @@ catkin_package(
     flexiv_hardware_interface
 )
 
-add_library(FlexivRdk SHARED IMPORTED)
-if (${BUILD_FOR_ARM64})
-  set_target_properties(FlexivRdk PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/libFlexivRdk.arm64-darwin.a)
-else()
-  set_target_properties(FlexivRdk PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/libFlexivRdk.x86_64-linux-gnu.a)
+# Set static library
+message("OS: ${CMAKE_SYSTEM_NAME}")
+message("Processor: ${CMAKE_SYSTEM_PROCESSOR}")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    set(RDK_STATIC_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/libflexiv_rdk.x86_64-linux-gnu.a")
+  elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(RDK_STATIC_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/libflexiv_rdk.aarch64-linux-gnu.a")
+  else()
+    message(FATAL_ERROR "Linux with ${CMAKE_SYSTEM_PROCESSOR} processor is currently not supported.")
+  endif()
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64")
+    set(RDK_STATIC_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/libflexiv_rdk.arm64-darwin.a")
+  else()
+    message(FATAL_ERROR "Mac with ${CMAKE_SYSTEM_PROCESSOR} processor is currently not supported.")
+  endif()
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "AMD64")
+    set(RDK_STATIC_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/rdk/lib/flexiv_rdk.win_amd64.lib")
+  else()
+    message(FATAL_ERROR "Windows with ${CMAKE_SYSTEM_PROCESSOR} processor is currently not supported.")
+  endif()
 endif()
 
 add_library(flexiv_hardware_interface
@@ -54,10 +70,9 @@ target_include_directories(
 )
 target_link_libraries(flexiv_hardware_interface
   PRIVATE
-  FlexivRdk
+  ${RDK_STATIC_LIBRARY}
   ${catkin_LIBRARIES}
 )
-
 
 add_executable(flexiv_hardware_interface_node
   src/flexiv_hardware_interface.cpp
@@ -72,7 +87,7 @@ target_include_directories(
 )
 target_link_libraries(flexiv_hardware_interface_node
   PRIVATE
-  FlexivRdk
+  ${RDK_STATIC_LIBRARY}
   ${catkin_LIBRARIES}
 )
 
