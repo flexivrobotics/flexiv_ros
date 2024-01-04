@@ -149,19 +149,35 @@ bool FlexivHardwareInterface::initRobot()
         return false;
     }
 
-    // Enable the robot, make sure the E-stop is released before enabling
     try {
+        // Clear fault on robot server is any
+        if (robot_->isFault()) {
+            ROS_WARN("Fault occurred on robot server, trying to clear ...");
+            // Try to clear the fault
+            robot_->clearFault();
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            // Check again
+            if (robot_->isFault()) {
+                ROS_ERROR("Fault cannot be cleared, exiting ...");
+                return false;
+            }
+            ROS_INFO("Fault on robot server is cleared");
+        }
+
+        // Enable the robot
+        ROS_INFO("Enabling robot ...");
         robot_->enable();
+
+        // Wait for the robot to become operational
+        while (!robot_->isOperational()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        ROS_INFO("Robot is now operational.");
+
     } catch (const flexiv::Exception& e) {
         ROS_ERROR("Could not enable robot: %s", e.what());
         return false;
     }
-
-    // Wait for the robot to become operational
-    while (!robot_->isOperational()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    ROS_INFO("Robot is now operational.");
 
     // get current position and set to initial position
     setInitPosition();
