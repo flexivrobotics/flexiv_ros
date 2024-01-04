@@ -5,6 +5,9 @@
 
 RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like real-time joint torque and position control, `ros_control` and MoveIt! integrations are implemented.
 
+> [!IMPORTANT]
+> For new features and bug fixes, please migrate to ROS 2 and use the [Flexiv ROS 2 Humble](https://github.com/flexivrobotics/flexiv_ros2).
+
 ## References
 
 [Flexiv RDK main webpage](https://rdk.flexiv.com/) contains important information like RDK user manual and network setup.
@@ -63,7 +66,8 @@ To start the robot driver run the following command in a terminal:
 $ roslaunch flexiv_bringup rizon_control.launch robot_ip:=[robot_ip] local_ip:=[local_ip]
 ```
 
-*Note:* Rizon 4 is the default robot type in the above launch command. If you want to control the Rizon 4s or Rizon 10, add the launch argument e.g. `rizon_type:=rizon4s`.
+> [!NOTE]
+> Rizon 4 is the default robot type in the above launch command. If you want to control the Rizon 4s or Rizon 10, add the launch argument e.g. `rizon_type:=rizon4s`.
 
 In another terminal, start the following launch file to run the rqt:
 
