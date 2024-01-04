@@ -21,7 +21,6 @@ FlexivHardwareInterface::FlexivHardwareInterface()
 , joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , joint_velocity_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , joint_effort_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
-, internal_joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ext_wrench_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ext_wrench_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ft_sensor_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
@@ -248,7 +247,6 @@ void FlexivHardwareInterface::read(
         joint_position_state_ = robot_states.q;
         joint_velocity_state_ = robot_states.dtheta;
         joint_effort_state_ = robot_states.tau;
-        internal_joint_position_command_ = joint_position_state_;
 
         ext_wrench_in_base_ = robot_states.extWrenchInBase;
         ext_wrench_in_tcp_ = robot_states.extWrenchInTcp;
@@ -281,11 +279,7 @@ void FlexivHardwareInterface::write(
     } else if (velocity_controller_running_
                && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
                && !(vectorHasNan(joint_velocity_command_))) {
-        for (std::size_t i = 0; i < num_joints_; i++) {
-            internal_joint_position_command_[i]
-                += joint_velocity_command_[i] * period.toSec();
-        }
-        robot_->streamJointPosition(internal_joint_position_command_,
+        robot_->streamJointPosition(joint_position_state_,
             joint_velocity_command_, target_acceleration);
     } else if (effort_controller_running_
                && robot_->getMode() == flexiv::Mode::RT_JOINT_TORQUE
