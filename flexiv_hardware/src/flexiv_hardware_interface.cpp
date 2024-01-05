@@ -21,7 +21,6 @@ FlexivHardwareInterface::FlexivHardwareInterface()
 , joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , joint_velocity_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , joint_effort_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
-, internal_joint_position_command_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ext_wrench_in_tcp_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ext_wrench_in_base_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 , ft_sensor_state_({0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
@@ -150,19 +149,35 @@ bool FlexivHardwareInterface::initRobot()
         return false;
     }
 
-    // Enable the robot, make sure the E-stop is released before enabling
     try {
+        // Clear fault on robot server is any
+        if (robot_->isFault()) {
+            ROS_WARN("Fault occurred on robot server, trying to clear ...");
+            // Try to clear the fault
+            robot_->clearFault();
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            // Check again
+            if (robot_->isFault()) {
+                ROS_ERROR("Fault cannot be cleared, exiting ...");
+                return false;
+            }
+            ROS_INFO("Fault on robot server is cleared");
+        }
+
+        // Enable the robot
+        ROS_INFO("Enabling robot ...");
         robot_->enable();
+
+        // Wait for the robot to become operational
+        while (!robot_->isOperational()) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        ROS_INFO("Robot is now operational.");
+
     } catch (const flexiv::Exception& e) {
         ROS_ERROR("Could not enable robot: %s", e.what());
         return false;
     }
-
-    // Wait for the robot to become operational
-    while (!robot_->isOperational()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    ROS_INFO("Robot is now operational.");
 
     // get current position and set to initial position
     setInitPosition();
@@ -248,7 +263,6 @@ void FlexivHardwareInterface::read(
         joint_position_state_ = robot_states.q;
         joint_velocity_state_ = robot_states.dtheta;
         joint_effort_state_ = robot_states.tau;
-        internal_joint_position_command_ = joint_position_state_;
 
         ext_wrench_in_base_ = robot_states.extWrenchInBase;
         ext_wrench_in_tcp_ = robot_states.extWrenchInTcp;
@@ -281,11 +295,7 @@ void FlexivHardwareInterface::write(
     } else if (velocity_controller_running_
                && robot_->getMode() == flexiv::Mode::RT_JOINT_POSITION
                && !(vectorHasNan(joint_velocity_command_))) {
-        for (std::size_t i = 0; i < num_joints_; i++) {
-            internal_joint_position_command_[i]
-                += joint_velocity_command_[i] * period.toSec();
-        }
-        robot_->streamJointPosition(internal_joint_position_command_,
+        robot_->streamJointPosition(joint_position_state_,
             joint_velocity_command_, target_acceleration);
     } else if (effort_controller_running_
                && robot_->getMode() == flexiv::Mode::RT_JOINT_TORQUE

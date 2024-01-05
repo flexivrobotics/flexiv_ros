@@ -271,7 +271,6 @@ protected:
     std::vector<double> joint_position_command_;
     std::vector<double> joint_velocity_command_;
     std::vector<double> joint_effort_command_;
-    std::vector<double> internal_joint_position_command_;
 
     // Controller
     std::atomic<bool> position_controller_running_;
