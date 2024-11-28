@@ -10,7 +10,7 @@ RDK APIs are wrapped into ROS packages in `flexiv_ros`. Key functionalities like
 
 ## References
 
-[Flexiv RDK main webpage](https://rdk.flexiv.com/) contains important information like RDK user manual and network setup.
+[Flexiv RDK main webpage](https://www.flexiv.com/software/rdk) contains important information like RDK user manual and network setup.
 
 ## Compatibility
 
@@ -54,7 +54,7 @@ $ source ~/flexiv_ros_ws/devel/setup.bash
 
 ### Enable RDK on robot server
 
-In order to use ROS driver to control the robot, you need to enable RDK on the robot server. See the [RDK Getting Started guide](https://rdk.flexiv.com/manual/getting_started.html) for details.
+In order to use ROS driver to control the robot, you need to enable RDK on the robot server. See the [RDK Getting Started guide](https://www.flexiv.com/software/rdk/manual/set_up_the_robot.html) for details.
 
 ### Control the robot
 
